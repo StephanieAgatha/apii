@@ -4,91 +4,59 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
-	"os"
-	"strconv"
-	"strings"
 )
 
-type items struct {
-	TotalVolume         string `json:"totalVolume"`
-	Owners              string `json:"owners"`
-	Supply              string `json:"supply"`
-	FloorPrice          string `json:"floorPrice"`
-	TotalListed         string `json:"totalListed"`
-	PendingTransactions string `json:"pendingTransactions"`
-}
-
-// format total volume ny
-func formatTotalVolume(totalVolume string) string {
-	// Mengkonversi totalVolume ke float64
-	value, _ := strconv.ParseFloat(totalVolume, 64)
-
-	// Mengubah angka menjadi string dengan 4 angka di belakang koma
-	formattedValue := strconv.FormatFloat(value/1e8, 'f', 4, 64)
-
-	return formattedValue
-}
-
-// format total floor price
-func formatFloorPrice(floorPrice string) string {
-	// Menghilangkan karakter non-digit dari floorPrice
-	floorPrice = strings.ReplaceAll(floorPrice, ".", "")
-
-	// Mengkonversi floorPrice ke float64
-	value, _ := strconv.ParseFloat(floorPrice, 64)
-
-	// Mengubah angka menjadi string dengan 4 angka di belakang koma
-	formattedValue := strconv.FormatFloat(value/1e8, 'f', 4, 64)
-
-	return formattedValue
+type Data struct {
+	Results struct {
+		Floor      float64 `json:"floor"`
+		Listed     float64 `json:"listedCount"`
+		Marketdata struct {
+			Volume24hrs float64 `json:"volume24hBtc"`
+			Volume7Day  float64 `json:"volume7dBtc"`
+			VolumeTotal float64 `json:"volumeTotalBtc"`
+		} `json:"marketData"`
+	} `json:"results"`
 }
 
 func main() {
-
+	//input collection
+	var input string
 	fmt.Print("Input collection : ")
-	var koleksi string
-	fmt.Scanln(&koleksi)
-	//init url dan input koleksi
-	url := fmt.Sprintf("https://api-mainnet.magiceden.io/v2/ord/btc/stat?collectionSymbol=%s", koleksi)
+	fmt.Scanln(&input)
+	//init url
+	url := fmt.Sprintf("https://ordinals.market/api/nativeCollectionStats?collectionId=%s", input)
 
-	// get response dari api dan handle error
+	//get resp api
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("Fetching error ", err)
-		os.Exit(1)
-	}
-
-	//read respon api
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Something went wrong", err)
+		log.Fatal("Got error ", err)
 		return
 	}
 
-	var item items
-	//json response
-	err = json.Unmarshal(data, &item)
+	//get resp body
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error code : ", err)
+		log.Fatal("Something went wrong ", err)
 		return
 	}
-	// Format totalVolume
-	totalVolume := item.TotalVolume
-	totalVolume = formatTotalVolume(totalVolume)
 
-	// Mendapatkan nilai floorPrice dari API
-	floorPrice := item.FloorPrice
+	//unmarshal
+	var data Data
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		log.Fatal("Error when unmarhsal ", err)
+		return
+	}
 
-	// Format floorPrice sesuai dengan kebutuhan
-	formattedFloorPrice := formatFloorPrice(floorPrice)
-
-	//hasil
-	fmt.Println("Floor Price : ", formattedFloorPrice)
-	fmt.Println("Total Volume : ", totalVolume)
-	fmt.Println("Total Listed : ", item.TotalListed)
-	fmt.Println("Owners : ", item.Owners)
-	fmt.Println("Supply : ", item.Supply)
-	fmt.Println("Pending Transactions : ", item.PendingTransactions)
+	//printout
+	fmt.Println("Floor : ₿", data.Results.Floor)
+	fmt.Println("Listed : ", data.Results.Listed)
+	fmt.Println("Volume 24 hours : ₿", data.Results.Marketdata.Volume24hrs)
+	fmt.Println("Volume 7 Day : ₿", data.Results.Marketdata.Volume7Day)
+	fmt.Println("Total Volume : ₿", data.Results.Marketdata.VolumeTotal)
 
 }
+
+//this api grabbed from https://ordinals.market/ . only for educational purpose
