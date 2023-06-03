@@ -31,7 +31,7 @@ func main() {
 	//get resp api
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Fatal("Got error ", err)
+		log.Fatal("Error : ", err)
 		return
 	}
 
@@ -46,7 +46,7 @@ func main() {
 	var data Data
 	err = json.Unmarshal(body, &data)
 	if err != nil {
-		log.Fatal("Error when unmarhsal ", err)
+		log.Fatal("Error when trying to unmarshal ", err)
 		return
 	}
 
